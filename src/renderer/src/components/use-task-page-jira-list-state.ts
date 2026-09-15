@@ -9,6 +9,13 @@ import type {
   JiraPrioritiesBySite
 } from './jira-issue-sorter'
 import { jiraListPriorities } from '@/runtime/runtime-jira-client'
+import {
+  jiraListGridTemplate,
+  loadJiraListColumnIds,
+  saveJiraListColumnIds,
+  visibleJiraListColumns,
+  type JiraListColumnId
+} from './jira-list-columns'
 export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
   const { settings, jiraConnected, selectedJiraSiteId, taskSource, jiraTaskSourceContext } = model
   // Jira tab state
@@ -28,6 +35,27 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
   const [jiraOrderDirection, setJiraOrderDirection] = useState<JiraIssueSortDirection>('desc')
   const [jiraPrioritiesBySite, setJiraPrioritiesBySite] = useState<JiraPrioritiesBySite>(
     () => new Map()
+  )
+  const [jiraColumnIds, setJiraColumnIds] =
+    useState<ReadonlySet<JiraListColumnId>>(loadJiraListColumnIds)
+  const jiraColumns = useMemo(() => visibleJiraListColumns(jiraColumnIds), [jiraColumnIds])
+  const jiraGridTemplate = useMemo(() => jiraListGridTemplate(jiraColumns), [jiraColumns])
+  const toggleJiraColumn = useCallback(
+    (column: JiraListColumnId) => {
+      const next = new Set(jiraColumnIds)
+      if (next.has(column)) {
+        next.delete(column)
+        if (jiraOrderBy === column) {
+          setJiraOrderBy('updated')
+          setJiraOrderDirection('desc')
+        }
+      } else {
+        next.add(column)
+      }
+      saveJiraListColumnIds(next)
+      setJiraColumnIds(next)
+    },
+    [jiraColumnIds, jiraOrderBy]
   )
   const jiraPrioritySiteIdsKey = useMemo(() => {
     const siteIds =
@@ -109,6 +137,10 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
     setJiraPrioritiesBySite: typeof setJiraPrioritiesBySite
     jiraPrioritySiteIdsKey: typeof jiraPrioritySiteIdsKey
     handleJiraSort: typeof handleJiraSort
+    jiraColumnIds: typeof jiraColumnIds
+    jiraColumns: typeof jiraColumns
+    jiraGridTemplate: typeof jiraGridTemplate
+    toggleJiraColumn: typeof toggleJiraColumn
   }
   nextModel.jiraIssues = jiraIssues
   nextModel.setJiraIssues = setJiraIssues
@@ -136,6 +168,10 @@ export function useTaskPageJiraListState(model: TaskPageLinearViewStateModel) {
   nextModel.setJiraPrioritiesBySite = setJiraPrioritiesBySite
   nextModel.jiraPrioritySiteIdsKey = jiraPrioritySiteIdsKey
   nextModel.handleJiraSort = handleJiraSort
+  nextModel.jiraColumnIds = jiraColumnIds
+  nextModel.jiraColumns = jiraColumns
+  nextModel.jiraGridTemplate = jiraGridTemplate
+  nextModel.toggleJiraColumn = toggleJiraColumn
   return nextModel
 }
 export type TaskPageJiraListStateModel = ReturnType<typeof useTaskPageJiraListState>

@@ -4,6 +4,7 @@ import { acquire, release } from './request-queue'
 import { apiBasePath, jiraRequest, type JiraClientForSite } from './authenticated-request'
 import { clearToken, getClients, isAuthError } from './client'
 import { ISSUE_LIST_FIELDS, mapJiraIssue } from './jira-issue-mapping'
+import { agileFieldIdList, getAgileFieldIds } from './jira-agile-fields'
 import type { JiraSearchResponse } from './jira-record-pages'
 import {
   shouldSurfaceSiteFailure,
@@ -46,16 +47,19 @@ async function searchIssuesForClient(
     entry.site.authType === 'server'
       ? `${apiBasePath(entry.site)}/search`
       : '/rest/api/3/search/jql'
+  const agileFields = await getAgileFieldIds(entry, signal)
   const result = await jiraRequest<JiraSearchResponse>(entry, searchPath, {
     method: 'POST',
     body: JSON.stringify({
       jql,
       maxResults: limit,
-      fields: ISSUE_LIST_FIELDS
+      fields: [...ISSUE_LIST_FIELDS, ...agileFieldIdList(agileFields)]
     }),
     signal
   })
-  return (result.issues ?? []).map((issue) => mapJiraIssue(entry.site, issue))
+  return (result.issues ?? []).map((issue) =>
+    mapJiraIssue(entry.site, issue, undefined, agileFields)
+  )
 }
 
 export async function listIssues(
