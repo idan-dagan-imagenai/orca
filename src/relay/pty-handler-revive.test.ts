@@ -543,6 +543,7 @@ describe('PtyHandler', () => {
     }
 
     expect(mockPtySpawn).toHaveBeenCalledTimes(1)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: callRequest is typed unknown; pty.serialize answers with the JSON state string this file parses everywhere.
     const live = (await dispatcher.callRequest('pty.serialize', {
       ids: ['pty-30', 'pty-31']
     })) as string
