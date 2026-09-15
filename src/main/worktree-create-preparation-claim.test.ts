@@ -68,6 +68,11 @@ describe('selectPreparationForCreate', () => {
       candidate: candidate(),
       canonicalBase: 'refs/remotes/origin/main'
     })
+    // Another repo's in-flight preparation is a cap eviction from this create's side, not `not_ready`.
+    expect(selectPreparationForCreate([running], request({ repoPathKey: '/other' }))).toEqual({
+      kind: 'miss',
+      reason: 'repo_mismatch'
+    })
     // A finished sibling is still claimable while the other is in flight.
     expect(
       selectPreparationForCreate([running, candidate({ createdAt: 2_000 })], request())

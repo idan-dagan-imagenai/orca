@@ -86,16 +86,21 @@ export function selectPreparationForCreate<T extends PreparationCandidate>(
   candidates: readonly T[],
   request: PreparationRequest
 ): PreparationSelection<T> {
-  // An unfinished preparation is left armed rather than claimed: its checkout runs at `background`,
-  // so awaiting it would park this interactive create behind every arriving status poller.
-  const finished = candidates.filter((candidate) => candidate.checkoutFinished)
-  if (finished.length === 0) {
-    return { kind: 'miss', reason: candidates.length === 0 ? 'none_armed' : 'not_ready' }
+  if (candidates.length === 0) {
+    return { kind: 'miss', reason: 'none_armed' }
   }
-  const sameRepo = finished.filter((candidate) => candidate.repoPathKey === request.repoPathKey)
-  if (sameRepo.length === 0) {
+  const armedForRepo = candidates.filter(
+    (candidate) => candidate.repoPathKey === request.repoPathKey
+  )
+  if (armedForRepo.length === 0) {
     // Separate from `none_armed`: this is what a size-cap eviction looks like from the create side.
     return { kind: 'miss', reason: 'repo_mismatch' }
+  }
+  // An unfinished preparation is left armed rather than claimed: its checkout runs at `background`,
+  // so awaiting it would park this interactive create behind every arriving status poller.
+  const sameRepo = armedForRepo.filter((candidate) => candidate.checkoutFinished)
+  if (sameRepo.length === 0) {
+    return { kind: 'miss', reason: 'not_ready' }
   }
   // Distro before root: the distro decides which filesystem the root is even on.
   const sameHost = sameRepo.filter((candidate) => candidate.wslDistro === request.wslDistro)
