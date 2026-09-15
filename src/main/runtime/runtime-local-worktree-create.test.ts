@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Store } from '../persistence'
+import type { WorktreeMeta } from '../../shared/worktree/meta-types'
 import type { RuntimeManagedWorktreeCreateArgs } from './runtime-managed-worktree-create-types'
 import type { AddWorktreeOptions } from '../git/worktree'
 import {
@@ -88,7 +89,7 @@ function createWorktree(request: Partial<RuntimeManagedWorktreeCreateArgs> = {})
       refreshLocalBaseRefOnWorktreeCreate: false,
       branchPrefix: ''
     }),
-    setWorktreeMeta: (_id: string, updates: object) => updates
+    setWorktreeMeta: (_id: string, updates: Partial<WorktreeMeta>) => updates
   }
   return createRuntimeLocalManagedWorktree({
     request: { repoSelector: 'repo-1', name: 'app', baseBranch: 'main', ...request },
