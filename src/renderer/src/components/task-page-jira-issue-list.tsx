@@ -8,6 +8,8 @@ import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { JiraIssue, JiraProjectStatusOrder } from '../../../shared/jira-types'
 import type { JiraListColumn } from './jira-list-columns'
+
+type JiraRowStyle = React.CSSProperties & { '--jira-cols': string }
 import { JiraIssueCell, JiraPriorityText, unassignedLabel } from './task-page-jira-issue-cells'
 
 export type TaskPageJiraIssueSection = {
@@ -109,6 +111,8 @@ function JiraIssueRow({
   selected: boolean
   showSiteContext: boolean
 }): React.JSX.Element {
+  // Why: visible columns are user-chosen, so the desktop template is data, not a Tailwind class.
+  const rowStyle: JiraRowStyle = { '--jira-cols': gridTemplate }
   const labels = issue.labels.slice(0, 3)
   const contextLabel =
     showSiteContext && issue.siteName
@@ -133,8 +137,7 @@ function JiraIssueRow({
           onOpenIssue(issue)
         }
       }}
-      // Why: visible columns are user-chosen, so the desktop template is data, not a Tailwind class.
-      style={{ '--jira-cols': gridTemplate } as React.CSSProperties}
+      style={rowStyle}
       className={cn(
         'group/row grid min-h-12 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 text-left transition hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:grid-cols-(--jira-cols)',
         selected && 'bg-accent'

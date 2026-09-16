@@ -214,9 +214,17 @@ function sprintName(value: unknown): string | undefined {
   return asString(asRecord(value).name) || undefined
 }
 
+function sprintState(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return /state=([^,\]]+)/.exec(value)?.[1]
+  }
+  return asString(asRecord(value).state) || undefined
+}
+
+// Why: Jira orders an issue's sprints by id, not state, so the last one may be closed.
 export function mapSprint(value: unknown): string | undefined {
   const sprints = Array.isArray(value) ? value : value ? [value] : []
-  const active = sprints.find((sprint) => asString(asRecord(sprint).state) === 'active')
+  const active = sprints.find((sprint) => sprintState(sprint)?.toLowerCase() === 'active')
   return sprintName(active ?? sprints.at(-1))
 }
 

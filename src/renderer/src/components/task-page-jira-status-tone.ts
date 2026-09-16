@@ -27,6 +27,7 @@ export function getJiraPriorityTone(priorityName: string | undefined): string {
     case 'lowest':
     case 'trivial':
       return 'text-sky-500 dark:text-sky-300'
+    case undefined:
     default:
       return 'text-muted-foreground'
   }

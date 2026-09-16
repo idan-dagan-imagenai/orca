@@ -3,7 +3,7 @@ import type { JiraIssue, JiraIssueFilter, JiraSiteSelection } from '../../shared
 import { acquire, release } from './request-queue'
 import { apiBasePath, jiraRequest, type JiraClientForSite } from './authenticated-request'
 import { clearToken, getClients, isAuthError } from './client'
-import { ISSUE_LIST_FIELDS, mapJiraIssue } from './jira-issue-mapping'
+import { ISSUE_LIST_FIELDS, mapJiraIssue, type JiraAgileFieldIds } from './jira-issue-mapping'
 import { agileFieldIdList, getAgileFieldIds } from './jira-agile-fields'
 import type { JiraSearchResponse } from './jira-record-pages'
 import {
@@ -40,6 +40,7 @@ async function searchIssuesForClient(
   entry: JiraClientForSite,
   jql: string,
   limit: number,
+  agileFields: JiraAgileFieldIds,
   signal?: AbortSignal
 ): Promise<JiraIssue[]> {
   // Server/DC only has the classic /search resource; /search/jql is Cloud-only.
@@ -47,7 +48,6 @@ async function searchIssuesForClient(
     entry.site.authType === 'server'
       ? `${apiBasePath(entry.site)}/search`
       : '/rest/api/3/search/jql'
-  const agileFields = await getAgileFieldIds(entry, signal)
   const result = await jiraRequest<JiraSearchResponse>(entry, searchPath, {
     method: 'POST',
     body: JSON.stringify({
@@ -86,10 +86,18 @@ export async function searchIssues(
   const results = await withJiraDeadline(signal, ISSUE_SEARCH_TIMEOUT_MS, (requestSignal) =>
     Promise.all(
       entries.map(async (entry, index) => {
+        // Discovery takes its own queue slot, so it runs before this search holds one.
+        const agileFields = await getAgileFieldIds(entry, requestSignal)
         // Why: queueing on an abandoned search would keep occupying the shared Jira pool.
         await acquire(requestSignal)
         try {
-          return await searchIssuesForClient(entry, jql.trim(), safeLimit, requestSignal)
+          return await searchIssuesForClient(
+            entry,
+            jql.trim(),
+            safeLimit,
+            agileFields,
+            requestSignal
+          )
         } catch (error) {
           if (requestSignal.aborted) {
             // Abandoned by the caller: not a site failure, so don't clear tokens or mask a real one.

@@ -43,7 +43,7 @@ function ParentCell({ issue }: { issue: JiraIssue }): React.JSX.Element {
     <Tooltip>
       <TooltipTrigger asChild>
         <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted-foreground">
-          <span className="shrink-0 rounded-sm border border-violet-500/30 bg-violet-500/10 px-1 font-mono text-[10px] text-violet-700 dark:text-violet-200">
+          <span className="shrink-0 rounded-sm border border-primary/30 bg-primary/10 px-1 font-mono text-[10px] text-primary">
             {issue.parent.key}
           </span>
           <span className="truncate">{issue.parent.title}</span>
@@ -141,7 +141,8 @@ export function JiraIssueCell({
           </TooltipContent>
         </Tooltip>
       )
-    default:
+    case 'key':
+    case 'title':
       return null
   }
 }

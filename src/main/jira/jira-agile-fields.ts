@@ -1,6 +1,7 @@
 import { apiBasePath, jiraRequest, type JiraClientForSite } from './authenticated-request'
 import type { JiraAgileFieldIds } from './jira-issue-mapping'
 import { asRecord, asString, type JiraRecord } from './jira-record-pages'
+import { acquire, release } from './request-queue'
 
 const SPRINT_FIELD_TYPE = 'com.pyxis.greenhopper.jira:gh-sprint'
 const STORY_POINT_FIELD_TYPES = new Set([
@@ -37,8 +38,20 @@ export function getAgileFieldIds(
 ): Promise<JiraAgileFieldIds> {
   let pending = cache.get(entry.site.id)
   if (!pending) {
-    pending = jiraRequest<JiraRecord[]>(entry, `${apiBasePath(entry.site)}/field`, { signal })
-      .then((fields) => pickAgileFieldIds(Array.isArray(fields) ? fields : []))
+    // Why: callers must not hold a queue slot here, or a full pool would deadlock on discovery.
+    pending = acquire(signal)
+      .then(async () => {
+        try {
+          const fields = await jiraRequest<JiraRecord[]>(
+            entry,
+            `${apiBasePath(entry.site)}/field`,
+            { signal }
+          )
+          return pickAgileFieldIds(Array.isArray(fields) ? fields : [])
+        } finally {
+          release()
+        }
+      })
       .catch((error) => {
         // Field discovery is best-effort: the list still renders without sprint/points.
         console.warn('[jira] field discovery failed:', error)

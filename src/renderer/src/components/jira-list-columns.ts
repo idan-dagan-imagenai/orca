@@ -136,6 +136,7 @@ export function formatJiraEstimate(seconds: number | undefined): string {
       rest -= count * size
     }
   }
+  // Two units keep the column narrow: "1w 2d 3h" reads as "1w 2d".
   return parts.slice(0, 2).join(' ') || '<1m'
 }
 
