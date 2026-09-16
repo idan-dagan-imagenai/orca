@@ -1,5 +1,5 @@
 import { buildJiraCreateTextAdf } from '@/components/jira-create-adf'
-import type { JiraCreateField } from '../../../shared/jira-types'
+import type { JiraCreateField, JiraUser } from '../../../shared/jira-types'
 
 const JIRA_CREATE_SYSTEM_FIELD_KEYS = new Set(['project', 'issuetype', 'summary', 'description'])
 
@@ -109,4 +109,33 @@ export function buildJiraCreateCustomFields(
     }
   }
   return Object.keys(customFields).length > 0 ? customFields : undefined
+}
+
+export type JiraCreateExtras = {
+  priorityId: string | null
+  assignee: JiraUser | null
+  sprintId: string | null
+  sprintFieldId: string | null
+}
+
+/** Merges the optional priority, assignee and sprint pickers into the create payload. */
+export function buildJiraCreateExtraFields(
+  extras: JiraCreateExtras,
+  customFields: Record<string, unknown> | undefined
+): { customFields: Record<string, unknown> | undefined; userFieldKeys: string[] | undefined } {
+  const merged: Record<string, unknown> = { ...customFields }
+  if (extras.priorityId) {
+    merged.priority = { id: extras.priorityId }
+  }
+  if (extras.assignee) {
+    merged.assignee = extras.assignee.accountId
+  }
+  const sprintId = Number(extras.sprintId)
+  if (extras.sprintFieldId && extras.sprintId && Number.isFinite(sprintId)) {
+    merged[extras.sprintFieldId] = sprintId
+  }
+  return {
+    customFields: Object.keys(merged).length > 0 ? merged : undefined,
+    userFieldKeys: extras.assignee ? ['assignee'] : undefined
+  }
 }

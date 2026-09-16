@@ -891,6 +891,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'jira.listIssueTypes': ProjectIssueTypes,
   'jira.listIssues': ListIssues,
   'jira.listPriorities': SiteSelection,
+  'jira.listProjectSprints': ProjectStatusOrder,
   'jira.listProjects': SiteSelection,
   'jira.listTransitions': IssueKey,
   'jira.lookupIssueSummary': IssueKey,

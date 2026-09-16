@@ -171,6 +171,12 @@ export const JIRA_METHODS = [
     handler: async (params, { runtime }) => runtime.jiraListPriorities(params?.siteId)
   }),
   defineMethod({
+    name: 'jira.listProjectSprints',
+    params: ProjectStatusOrder,
+    handler: async (params, { runtime }) =>
+      runtime.jiraListProjectSprints(params.projectKey.trim(), params.siteId)
+  }),
+  defineMethod({
     name: 'jira.listAssignableUsers',
     params: AssignableUsers,
     handler: async (params, { runtime }) =>
