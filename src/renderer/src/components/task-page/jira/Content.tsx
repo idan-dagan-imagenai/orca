@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { TaskPageJiraSortControls } from '../../task-page-jira-sort-controls'
 import { TaskPageJiraErrorBanner } from '../../task-page-linear-jira-list-model'
 import { TaskPageJiraIssueList } from '@/components/task-page-jira-issue-list'
+import { useTaskPageJiraInlineEdit } from '@/components/use-task-page-jira-inline-edit'
 import { formatRelativeTime } from '../../task-page-source-context'
 import { getJiraStatusTone } from '@/components/task-page-jira-status-tone'
 import JiraIssueWorkspace from '@/components/JiraIssueWorkspace'
@@ -55,6 +56,7 @@ export function TaskPageJiraContent({
     handleUseJiraItem
   } = model
   const columnsLabel = translate('auto.components.TaskPage.jiraColumnsPicker', 'Columns')
+  const editControls = useTaskPageJiraInlineEdit(model)
   return taskSource === 'jira' ? (
     !jiraStatusReady ? (
       <div className="mt-4 flex items-center justify-center py-14">
@@ -178,6 +180,7 @@ export function TaskPageJiraContent({
           ) : null}
 
           <TaskPageJiraIssueList
+            editControls={editControls}
             columns={jiraColumns}
             gridTemplate={jiraGridTemplate}
             formatUpdatedAt={formatRelativeTime}
