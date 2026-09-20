@@ -118,6 +118,17 @@ export async function updateIssue(
         body: JSON.stringify(assigneeBody)
       })
     }
+    if (updates.sprintId !== undefined) {
+      // Why the agile API rather than the sprint custom field: the field id differs
+      // per site and is often absent from the edit screen, which rejects the PUT.
+      await jiraRequest(
+        entry,
+        updates.sprintId === null
+          ? '/rest/agile/1.0/backlog/issue'
+          : `/rest/agile/1.0/sprint/${updates.sprintId}/issue`,
+        { method: 'POST', body: JSON.stringify({ issues: [key] }) }
+      )
+    }
     if (updates.transitionId) {
       await jiraRequest(entry, `${issueBase}/transitions`, {
         method: 'POST',

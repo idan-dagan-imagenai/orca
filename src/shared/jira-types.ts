@@ -148,6 +148,8 @@ export type JiraIssueUpdate = {
   assigneeAccountId?: string | null
   priorityId?: string | null
   transitionId?: string
+  /** Sprint to move the issue into; null sends it back to the backlog. */
+  sprintId?: number | null
 }
 
 export type JiraIssueFilter = 'assigned' | 'reported' | 'all' | 'done'

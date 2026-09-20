@@ -159,6 +159,45 @@ describe('Jira issue mutations', () => {
     expect(body.fields.customfield_1).toEqual({ id: '3' })
   })
 
+  it('moves an issue into a sprint through the agile API', async () => {
+    getClientsMock.mockReturnValue([makeEntry()])
+    jiraRequestMock.mockResolvedValue(null)
+    const { updateIssue } = await import('./issues')
+
+    await updateIssue('ALP-1', { sprintId: 42 }, 'site-1')
+
+    expect(jiraRequestMock).toHaveBeenCalledWith(
+      expect.anything(),
+      '/rest/agile/1.0/sprint/42/issue',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ issues: ['ALP-1'] }) })
+    )
+  })
+
+  it('sends an issue back to the backlog when the sprint is cleared', async () => {
+    getClientsMock.mockReturnValue([makeEntry()])
+    jiraRequestMock.mockResolvedValue(null)
+    const { updateIssue } = await import('./issues')
+
+    await updateIssue('ALP-1', { sprintId: null }, 'site-1')
+
+    expect(jiraRequestMock).toHaveBeenCalledWith(
+      expect.anything(),
+      '/rest/agile/1.0/backlog/issue',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ issues: ['ALP-1'] }) })
+    )
+  })
+
+  it('leaves the sprint alone when the update does not mention it', async () => {
+    getClientsMock.mockReturnValue([makeEntry()])
+    jiraRequestMock.mockResolvedValue(null)
+    const { updateIssue } = await import('./issues')
+
+    await updateIssue('ALP-1', { title: 'Renamed' }, 'site-1')
+
+    const paths = jiraRequestMock.mock.calls.map((call) => String(call[1]))
+    expect(paths.some((path) => path.includes('/rest/agile/'))).toBe(false)
+  })
+
   it('unassigns by username on self-hosted sites', async () => {
     getClientsMock.mockReturnValue([makeServerEntry()])
     jiraRequestMock.mockResolvedValue(null)
