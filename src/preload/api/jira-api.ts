@@ -8,6 +8,7 @@ import type {
   JiraIssueType,
   JiraIssueUpdate,
   JiraPriority,
+  JiraProjectSprints,
   JiraProject,
   JiraProjectStatusOrder,
   JiraSiteSelection,
@@ -71,6 +72,7 @@ export type JiraApi = {
     siteId?: string
   }) => Promise<JiraCreateField[]>
   listPriorities: (args?: { siteId?: string }) => Promise<JiraPriority[]>
+  listProjectSprints: (args: { projectKey: string; siteId?: string }) => Promise<JiraProjectSprints>
   listAssignableUsers: (args: {
     key: string
     query?: string

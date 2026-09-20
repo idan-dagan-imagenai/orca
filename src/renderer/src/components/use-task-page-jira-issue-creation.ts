@@ -1,6 +1,9 @@
 import type { TaskPageLinearIssueCreationModel } from './use-task-page-linear-issue-creation'
 import { useCallback } from 'react'
-import { buildJiraCreateCustomFields } from '@/components/task-page-jira-create-fields'
+import {
+  buildJiraCreateCustomFields,
+  buildJiraCreateExtraFields
+} from '@/components/task-page-jira-create-fields'
 import { jiraCreateIssue, jiraGetIssue } from '@/runtime/runtime-jira-client'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
@@ -27,7 +30,11 @@ export function useTaskPageJiraIssueCreation(model: TaskPageLinearIssueCreationM
     newJiraIssueTargetProject,
     newJiraIssueTargetType,
     visibleJiraCreateFields,
-    hasMissingJiraCreateField
+    hasMissingJiraCreateField,
+    newJiraIssuePriorityId,
+    newJiraIssueAssignee,
+    newJiraIssueSprintId,
+    jiraCreateSprints
   } = model
   const handleCreateNewJiraIssue = useCallback(async (): Promise<void> => {
     if (!newJiraIssueTargetProject || !newJiraIssueTargetType) {
@@ -37,9 +44,14 @@ export function useTaskPageJiraIssueCreation(model: TaskPageLinearIssueCreationM
     if (!title || newJiraIssueSubmitting || hasMissingJiraCreateField || jiraCreateFieldsLoading) {
       return
     }
-    const customFields = buildJiraCreateCustomFields(
-      visibleJiraCreateFields,
-      newJiraIssueCustomFieldValues
+    const { customFields, userFieldKeys } = buildJiraCreateExtraFields(
+      {
+        priorityId: newJiraIssuePriorityId,
+        assignee: newJiraIssueAssignee,
+        sprintId: newJiraIssueSprintId,
+        sprintFieldId: jiraCreateSprints.sprintFieldId
+      },
+      buildJiraCreateCustomFields(visibleJiraCreateFields, newJiraIssueCustomFieldValues)
     )
     setNewJiraIssueSubmitting(true)
     const submitProviderRuntimeContextKey = providerRuntimeContextKey
@@ -50,7 +62,8 @@ export function useTaskPageJiraIssueCreation(model: TaskPageLinearIssueCreationM
         issueTypeId: newJiraIssueTargetType.id,
         title,
         description: newJiraIssueBody || undefined,
-        customFields
+        customFields,
+        userFieldKeys
       })
       if (submitProviderRuntimeContextKey !== providerRuntimeContextKeyRef.current) {
         return
@@ -113,6 +126,10 @@ export function useTaskPageJiraIssueCreation(model: TaskPageLinearIssueCreationM
   }, [
     hasMissingJiraCreateField,
     jiraCreateFieldsLoading,
+    jiraCreateSprints,
+    newJiraIssueAssignee,
+    newJiraIssuePriorityId,
+    newJiraIssueSprintId,
     newJiraIssueBody,
     newJiraIssueCustomFieldValues,
     newJiraIssueSubmitting,

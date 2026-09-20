@@ -18,6 +18,7 @@ import {
   listIssueTypes,
   listIssues,
   listPriorities,
+  listProjectSprints,
   listProjects,
   listTransitions,
   searchIssues,
@@ -122,6 +123,13 @@ export class RuntimeJiraCommands {
 
   jiraListPriorities(siteId?: string): ReturnType<typeof listPriorities> {
     return listPriorities(siteId)
+  }
+
+  jiraListProjectSprints(
+    projectKey: string,
+    siteId?: string
+  ): ReturnType<typeof listProjectSprints> {
+    return listProjectSprints(projectKey, siteId)
   }
 
   jiraListAssignableUsers(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildJiraCreateExtraFields,
   buildJiraCreateCustomFields,
   buildJiraCreateFieldValue,
   findJiraCreateAllowedValue,
@@ -220,5 +221,43 @@ describe('buildJiraCreateCustomFields', () => {
 
   it('treats a missing draft entry as blank', () => {
     expect(buildJiraCreateCustomFields([field({ key: 'a' })], { other: 'x' })).toBeUndefined()
+  })
+})
+
+describe('buildJiraCreateExtraFields', () => {
+  const none = { priorityId: null, assignee: null, sprintId: null, sprintFieldId: null }
+
+  it('leaves the payload untouched when nothing is picked', () => {
+    expect(buildJiraCreateExtraFields(none, undefined)).toEqual({
+      customFields: undefined,
+      userFieldKeys: undefined
+    })
+    expect(buildJiraCreateExtraFields(none, { a: 1 })).toEqual({
+      customFields: { a: 1 },
+      userFieldKeys: undefined
+    })
+  })
+
+  it('adds priority, assignee and sprint in the shapes Jira expects', () => {
+    expect(
+      buildJiraCreateExtraFields(
+        {
+          priorityId: '3',
+          assignee: { accountId: 'acc-1', displayName: 'Alex Doe' },
+          sprintId: '42',
+          sprintFieldId: 'customfield_10020'
+        },
+        { a: 1 }
+      )
+    ).toEqual({
+      customFields: { a: 1, priority: { id: '3' }, assignee: 'acc-1', customfield_10020: 42 },
+      userFieldKeys: ['assignee']
+    })
+  })
+
+  it('skips the sprint when the site has no sprint field', () => {
+    expect(
+      buildJiraCreateExtraFields({ ...none, sprintId: '42' }, undefined).customFields
+    ).toBeUndefined()
   })
 })

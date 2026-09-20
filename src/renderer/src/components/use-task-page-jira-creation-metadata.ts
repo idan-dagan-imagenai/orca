@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { jiraListIssueTypes, jiraListCreateFields } from '@/runtime/runtime-jira-client'
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
+import { useTaskPageJiraCreationExtras } from './use-task-page-jira-creation-extras'
 export function useTaskPageJiraCreationMetadata(model: TaskPageJiraCreationStateModel) {
   const {
     settings,
@@ -126,7 +127,6 @@ export function useTaskPageJiraCreationMetadata(model: TaskPageJiraCreationState
     setJiraCreateFieldsError
   ])
 
-  // Why: defense-in-depth — keep stale cache rows from leaking across the issue/PR split tabs.
-  return model
+  return useTaskPageJiraCreationExtras(model)
 }
 export type TaskPageJiraCreationMetadataModel = ReturnType<typeof useTaskPageJiraCreationMetadata>

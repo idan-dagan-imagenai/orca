@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ArrowRight, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronRight, ExternalLink, Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -8,6 +8,7 @@ import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { JiraIssue, JiraProjectStatusOrder } from '../../../shared/jira-types'
 import type { JiraListColumn } from './jira-list-columns'
+import type { JiraInlineEditControls } from './use-task-page-jira-inline-edit'
 
 type JiraRowStyle = React.CSSProperties & { '--jira-cols': string }
 import { JiraIssueCell, JiraPriorityText, unassignedLabel } from './task-page-jira-issue-cells'
@@ -19,6 +20,7 @@ export type TaskPageJiraIssueSection = {
 }
 
 type TaskPageJiraIssueListProps = {
+  editControls?: JiraInlineEditControls
   columns: readonly JiraListColumn[]
   gridTemplate: string
   formatUpdatedAt: (updatedAt: string) => string
@@ -90,7 +92,64 @@ function isSelectedIssue(issue: JiraIssue, selectedIssue: JiraIssue | null): boo
   return !selectedIssue.siteId || !issue.siteId || selectedIssue.siteId === issue.siteId
 }
 
+/** Row title that turns into an input from the hover pencil; Enter saves, Escape cancels. */
+function EditableTitle({
+  issue,
+  controls
+}: {
+  issue: JiraIssue
+  controls?: JiraInlineEditControls
+}): React.JSX.Element {
+  const [draft, setDraft] = useState<string | null>(null)
+  if (draft === null || !controls) {
+    return (
+      <>
+        <h3 className="min-w-0 truncate text-[13px] font-medium text-foreground">{issue.title}</h3>
+        {controls ? (
+          <button
+            type="button"
+            aria-label={translate('auto.components.TaskPage.jiraEditTitle', 'Edit title')}
+            onClick={(event) => {
+              event.stopPropagation()
+              setDraft(issue.title)
+            }}
+            className="shrink-0 rounded-sm p-0.5 text-muted-foreground opacity-0 transition hover:bg-muted/40 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100"
+          >
+            <Pencil className="size-3" />
+          </button>
+        ) : null}
+      </>
+    )
+  }
+  const save = (): void => {
+    const title = draft.trim()
+    setDraft(null)
+    if (title && title !== issue.title) {
+      void controls.update(issue, { title }, { title })
+    }
+  }
+  return (
+    <input
+      autoFocus
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onClick={(event) => event.stopPropagation()}
+      onBlur={save}
+      onKeyDown={(event) => {
+        event.stopPropagation()
+        if (event.key === 'Enter') {
+          save()
+        } else if (event.key === 'Escape') {
+          setDraft(null)
+        }
+      }}
+      className="min-w-0 flex-1 rounded-sm border border-border bg-background px-1 py-0.5 text-[13px] font-medium text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    />
+  )
+}
+
 function JiraIssueRow({
+  editControls,
   columns,
   gridTemplate,
   formatUpdatedAt,
@@ -101,6 +160,7 @@ function JiraIssueRow({
   selected,
   showSiteContext
 }: {
+  editControls?: JiraInlineEditControls
   columns: readonly JiraListColumn[]
   gridTemplate: string
   formatUpdatedAt: (updatedAt: string) => string
@@ -152,9 +212,7 @@ function JiraIssueRow({
           <span className="shrink-0 font-mono text-[11px] text-muted-foreground md:hidden">
             {issue.key}
           </span>
-          <h3 className="min-w-0 truncate text-[13px] font-medium text-foreground">
-            {issue.title}
-          </h3>
+          <EditableTitle issue={issue} controls={editControls} />
         </div>
         <div className="mt-1 flex min-w-0 items-center gap-1.5 md:!hidden">
           <span
@@ -198,6 +256,7 @@ function JiraIssueRow({
               issue={issue}
               formatUpdatedAt={formatUpdatedAt}
               getStatusTone={getStatusTone}
+              editControls={editControls}
             />
           </div>
         )
@@ -254,6 +313,7 @@ function JiraIssueRow({
 }
 
 export function TaskPageJiraIssueList({
+  editControls,
   columns,
   gridTemplate,
   formatUpdatedAt,
@@ -314,6 +374,7 @@ export function TaskPageJiraIssueList({
             <CollapsibleContent className="divide-y divide-border/50 border-t border-border/50">
               {section.issues.map((issue) => (
                 <JiraIssueRow
+                  editControls={editControls}
                   key={`${issue.siteId ?? 'site'}:${issue.id || issue.key}`}
                   columns={columns}
                   gridTemplate={gridTemplate}

@@ -14,6 +14,7 @@ import {
   listIssueTypes,
   listIssues,
   listPriorities,
+  listProjectSprints,
   listProjects,
   listTransitions,
   searchIssues,
@@ -284,6 +285,12 @@ export function registerJiraHandlers(): void {
   ipcMain.handle('jira:listPriorities', async (_event, args?: { siteId?: string }) => {
     return listPriorities(normalizeSiteId(args?.siteId))
   })
+
+  ipcMain.handle(
+    'jira:listProjectSprints',
+    async (_event, args: { projectKey: string; siteId?: string }) =>
+      listProjectSprints(String(args?.projectKey ?? '').trim(), normalizeSiteId(args?.siteId))
+  )
 
   ipcMain.handle(
     'jira:listAssignableUsers',

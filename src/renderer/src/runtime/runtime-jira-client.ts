@@ -10,6 +10,7 @@ import type {
   JiraMutationResult,
   JiraPriority,
   JiraProject,
+  JiraProjectSprints,
   JiraProjectStatusOrder,
   JiraSiteSelection,
   JiraTransition,
@@ -254,6 +255,21 @@ export async function jiraListPriorities(
         { timeoutMs: 30_000 }
       )
     : window.api.jira.listPriorities(siteId ? { siteId } : undefined)
+}
+
+/** Lists the active and future sprints a new issue in the project can join. */
+export async function jiraListProjectSprints(
+  settings: RuntimeJiraSettings,
+  projectKey: string,
+  siteId?: string | null
+): Promise<JiraProjectSprints> {
+  const target = getJiraRuntimeTarget(settings)
+  const args = { projectKey, siteId: siteId ?? undefined }
+  return target.kind === 'environment'
+    ? callRuntimeRpc<JiraProjectSprints>(target, 'jira.listProjectSprints', args, {
+        timeoutMs: 30_000
+      })
+    : window.api.jira.listProjectSprints(args)
 }
 
 /** Lists users assignable to an existing issue, via the active runtime. */

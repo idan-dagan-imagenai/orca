@@ -79,6 +79,18 @@ export type JiraPriority = {
   iconUrl?: string
 }
 
+export type JiraSprint = {
+  id: number
+  name: string
+  state: string
+}
+
+/** Sprints a new issue in a project can join, plus the custom field that stores them. */
+export type JiraProjectSprints = {
+  sprintFieldId: string | null
+  sprints: JiraSprint[]
+}
+
 export type JiraStatus = {
   id: string
   name: string
