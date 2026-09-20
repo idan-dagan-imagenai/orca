@@ -90,6 +90,7 @@ export function JiraIssueMetadataBar({
   transitions,
   priorities,
   users,
+  searchUsers,
   mutateIssue
 }: {
   displayed: JiraIssue
@@ -97,6 +98,7 @@ export function JiraIssueMetadataBar({
   transitions: JiraTransition[]
   priorities: JiraPriority[]
   users: JiraUser[]
+  searchUsers: (query: string) => Promise<JiraUser[]>
   mutateIssue: (
     field: string,
     updates: JiraIssueUpdate,
@@ -204,6 +206,7 @@ export function JiraIssueMetadataBar({
           </button>
           <JiraUserOptionList
             users={users}
+            onSearch={searchUsers}
             onSelect={(user) =>
               void mutateIssue(
                 'assignee',

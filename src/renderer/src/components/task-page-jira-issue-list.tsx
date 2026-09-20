@@ -3,6 +3,12 @@ import { ArrowRight, ChevronDown, ChevronRight, ExternalLink, Pencil } from 'luc
 
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger
+} from '@/components/ui/context-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
@@ -12,6 +18,8 @@ import type { JiraInlineEditControls } from './use-task-page-jira-inline-edit'
 
 type JiraRowStyle = React.CSSProperties & { '--jira-cols': string }
 import { JiraIssueCell, JiraPriorityText, unassignedLabel } from './task-page-jira-issue-cells'
+import { JiraIssueQuickEditDialog } from './jira-issue-quick-edit-dialog'
+import { EditableTitle } from './jira-issue-title-editor'
 
 export type TaskPageJiraIssueSection = {
   key: string
@@ -92,62 +100,6 @@ function isSelectedIssue(issue: JiraIssue, selectedIssue: JiraIssue | null): boo
   return !selectedIssue.siteId || !issue.siteId || selectedIssue.siteId === issue.siteId
 }
 
-/** Row title that turns into an input from the hover pencil; Enter saves, Escape cancels. */
-function EditableTitle({
-  issue,
-  controls
-}: {
-  issue: JiraIssue
-  controls?: JiraInlineEditControls
-}): React.JSX.Element {
-  const [draft, setDraft] = useState<string | null>(null)
-  if (draft === null || !controls) {
-    return (
-      <>
-        <h3 className="min-w-0 truncate text-[13px] font-medium text-foreground">{issue.title}</h3>
-        {controls ? (
-          <button
-            type="button"
-            aria-label={translate('auto.components.TaskPage.jiraEditTitle', 'Edit title')}
-            onClick={(event) => {
-              event.stopPropagation()
-              setDraft(issue.title)
-            }}
-            className="shrink-0 rounded-sm p-0.5 text-muted-foreground opacity-0 transition hover:bg-muted/40 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100"
-          >
-            <Pencil className="size-3" />
-          </button>
-        ) : null}
-      </>
-    )
-  }
-  const save = (): void => {
-    const title = draft.trim()
-    setDraft(null)
-    if (title && title !== issue.title) {
-      void controls.update(issue, { title }, { title })
-    }
-  }
-  return (
-    <input
-      autoFocus
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onClick={(event) => event.stopPropagation()}
-      onBlur={save}
-      onKeyDown={(event) => {
-        event.stopPropagation()
-        if (event.key === 'Enter') {
-          save()
-        } else if (event.key === 'Escape') {
-          setDraft(null)
-        }
-      }}
-      className="min-w-0 flex-1 rounded-sm border border-border bg-background px-1 py-0.5 text-[13px] font-medium text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
-    />
-  )
-}
-
 function JiraIssueRow({
   editControls,
   columns,
@@ -156,6 +108,7 @@ function JiraIssueRow({
   getStatusTone,
   issue,
   onOpenIssue,
+  onQuickEdit,
   onStartWorkspace,
   selected,
   showSiteContext
@@ -167,6 +120,7 @@ function JiraIssueRow({
   getStatusTone: (categoryKey: string) => string
   issue: JiraIssue
   onOpenIssue: (issue: JiraIssue) => void
+  onQuickEdit?: (issue: JiraIssue) => void
   onStartWorkspace: (issue: JiraIssue) => void
   selected: boolean
   showSiteContext: boolean
@@ -179,7 +133,7 @@ function JiraIssueRow({
       ? `${issue.siteName} / ${issue.project.key}`
       : issue.project.key
 
-  return (
+  const row = (
     // Why: the row contains action buttons, so a native button wrapper would
     // create invalid nested buttons; role + keyboard handling preserves access.
     <div
@@ -310,6 +264,22 @@ function JiraIssueRow({
       </div>
     </div>
   )
+  if (!onQuickEdit) {
+    return row
+  }
+  // Why a context menu: the row click already opens the issue, so the batched
+  // edit needs its own gesture rather than taking that one over.
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onSelect={() => onQuickEdit(issue)}>
+          <Pencil className="size-3.5" />
+          {translate('components.jiraQuickEdit.menu', 'Edit sprint & assignee…')}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
 }
 
 export function TaskPageJiraIssueList({
@@ -327,6 +297,7 @@ export function TaskPageJiraIssueList({
   statusOrder
 }: TaskPageJiraIssueListProps): React.JSX.Element {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
+  const [quickEditIssue, setQuickEditIssue] = useState<JiraIssue | null>(null)
   const sections = useMemo(
     () => groupJiraIssuesByStatus(issues, statusOrder, statusDirection),
     [issues, statusDirection, statusOrder]
@@ -334,6 +305,18 @@ export function TaskPageJiraIssueList({
 
   return (
     <div className="divide-y divide-border/50">
+      {editControls ? (
+        <JiraIssueQuickEditDialog
+          issue={quickEditIssue}
+          controls={editControls}
+          open={quickEditIssue !== null}
+          onOpenChange={(next) => {
+            if (!next) {
+              setQuickEditIssue(null)
+            }
+          }}
+        />
+      ) : null}
       {sections.map((section) => {
         const open = !collapsedGroups.has(section.key)
         return (
@@ -382,6 +365,7 @@ export function TaskPageJiraIssueList({
                   getStatusTone={getStatusTone}
                   issue={issue}
                   onOpenIssue={onOpenIssue}
+                  onQuickEdit={editControls ? setQuickEditIssue : undefined}
                   onStartWorkspace={onStartWorkspace}
                   selected={isSelectedIssue(issue, selectedIssue)}
                   showSiteContext={showSiteContext}

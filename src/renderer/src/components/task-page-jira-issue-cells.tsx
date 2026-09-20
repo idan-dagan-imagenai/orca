@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { JiraUserOptionList } from '@/components/jira-user-picker'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
-import type { JiraIssue, JiraPriority, JiraUser } from '../../../shared/jira-types'
+import type { JiraIssue, JiraPriority, JiraSprint, JiraUser } from '../../../shared/jira-types'
 import type { JiraInlineEditControls } from './use-task-page-jira-inline-edit'
 import {
   formatJiraEstimate,
@@ -125,7 +125,11 @@ function EditableCell<T>({
             {translate('auto.components.TaskPage.jiraOptionsLoading', 'Loading…')}
           </p>
         ) : (
-          children(options, () => setOpen(false))
+          // Why the wrapper scrolls instead of the popover: a long option list was
+          // clipped with no way to reach the rows past the fold.
+          <div className="popover-scroll-content scrollbar-sleek">
+            {children(options, () => setOpen(false))}
+          </div>
         )}
       </PopoverContent>
     </Popover>
@@ -159,7 +163,67 @@ function AssigneeCell({
           <button type="button" onClick={() => choose(close, null)} className={OPTION_BUTTON}>
             {unassignedLabel()}
           </button>
-          <JiraUserOptionList users={users} onSelect={(user) => choose(close, user)} />
+          <JiraUserOptionList
+            users={users}
+            onSearch={(query) => controls.searchUsers(issue, query)}
+            onSelect={(user) => choose(close, user)}
+          />
+        </>
+      )}
+    </EditableCell>
+  )
+}
+
+/** Backlog is the sprint equivalent of an unassigned user: it clears the field. */
+function backlogLabel(): string {
+  return translate('auto.components.TaskPage.jiraSprintBacklog', 'Backlog')
+}
+
+function sprintOptionLabel(sprint: JiraSprint): string {
+  return sprint.state === 'active'
+    ? translate('auto.components.TaskPage.jiraSprintActive', '{{value0}} (active)', {
+        value0: sprint.name
+      })
+    : sprint.name
+}
+
+/** Clicking the sprint opens an inline picker instead of the issue detail. */
+function SprintCell({
+  issue,
+  controls
+}: {
+  issue: JiraIssue
+  controls: JiraInlineEditControls
+}): React.JSX.Element {
+  const choose = (close: () => void, sprint: JiraSprint | null): void => {
+    close()
+    void controls.update(
+      issue,
+      { sprintId: sprint?.id ?? null },
+      { sprint: sprint?.name ?? undefined }
+    )
+  }
+  return (
+    <EditableCell
+      load={() => controls.listSprints(issue)}
+      trigger={<span className={MUTED_CELL}>{issue.sprint ?? '–'}</span>}
+      triggerClassName="flex w-full min-w-0 px-1 py-0.5"
+    >
+      {(sprints, close) => (
+        <>
+          <button type="button" onClick={() => choose(close, null)} className={OPTION_BUTTON}>
+            {backlogLabel()}
+          </button>
+          {sprints.map((sprint) => (
+            <button
+              key={sprint.id}
+              type="button"
+              onClick={() => choose(close, sprint)}
+              className={OPTION_BUTTON}
+            >
+              {sprintOptionLabel(sprint)}
+            </button>
+          ))}
         </>
       )}
     </EditableCell>
@@ -314,7 +378,11 @@ export function JiraIssueCell({
     case 'parent':
       return <ParentCell issue={issue} />
     case 'sprint':
-      return <span className={MUTED_CELL}>{issue.sprint ?? '–'}</span>
+      return editControls ? (
+        <SprintCell issue={issue} controls={editControls} />
+      ) : (
+        <span className={MUTED_CELL}>{issue.sprint ?? '–'}</span>
+      )
     case 'storyPoints':
       return (
         <span className={cn(MUTED_CELL, 'tabular-nums')}>

@@ -155,6 +155,14 @@ export default function JiraIssueWorkspace({
     void loadComments(issue, requestId)
   }, [issue, loadComments, providerSettings])
 
+  const searchUsers = useCallback(
+    (query: string) =>
+      issue
+        ? jiraListAssignableUsers(providerSettings, issue.key, query, issue.siteId)
+        : Promise.resolve([]),
+    [issue, providerSettings]
+  )
+
   const refreshIssue = useCallback(async (): Promise<void> => {
     if (!displayed) {
       return
@@ -324,6 +332,7 @@ export default function JiraIssueWorkspace({
               transitions={transitions}
               priorities={priorities}
               users={users}
+              searchUsers={searchUsers}
               mutateIssue={mutateIssue}
             />
 

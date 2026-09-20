@@ -17216,6 +17216,16 @@
       "search": "Search users",
       "empty": "No users found"
     },
+    "jiraQuickEdit": {
+      "menu": "Edit sprint & assignee\u2026",
+      "sprint": "Sprint",
+      "sprintActive": "{{value0}} (active)",
+      "backlog": "Backlog",
+      "assignee": "Assignee",
+      "unassigned": "Unassigned",
+      "cancel": "Cancel",
+      "submit": "Submit"
+    },
     "native-chat": {
       "taskList": {
         "title": "Tasks",

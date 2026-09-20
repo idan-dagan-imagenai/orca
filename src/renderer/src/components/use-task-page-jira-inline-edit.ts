@@ -5,6 +5,7 @@ import { translate } from '@/i18n/i18n'
 import {
   jiraListAssignableUsers,
   jiraListPriorities,
+  jiraListProjectSprints,
   jiraListTransitions,
   jiraUpdateIssue
 } from '@/runtime/runtime-jira-client'
@@ -12,6 +13,7 @@ import type {
   JiraIssue,
   JiraIssueUpdate,
   JiraPriority,
+  JiraSprint,
   JiraTransition,
   JiraUser
 } from '../../../shared/jira-types'
@@ -20,8 +22,10 @@ import type { TaskPageJiraListStateModel } from './use-task-page-jira-list-state
 /** Inline editing for a Jira list row: option lookups plus one optimistic mutation. */
 export type JiraInlineEditControls = {
   listUsers: (issue: JiraIssue) => Promise<JiraUser[]>
+  searchUsers: (issue: JiraIssue, query: string) => Promise<JiraUser[]>
   listPriorities: (issue: JiraIssue) => Promise<JiraPriority[]>
   listTransitions: (issue: JiraIssue) => Promise<JiraTransition[]>
+  listSprints: (issue: JiraIssue) => Promise<JiraSprint[]>
   update: (
     issue: JiraIssue,
     updates: JiraIssueUpdate,
@@ -45,8 +49,14 @@ export function useTaskPageJiraInlineEdit(
     return {
       listUsers: (issue) =>
         jiraListAssignableUsers(providerSettings, issue.key, undefined, issue.siteId),
+      searchUsers: (issue, query) =>
+        jiraListAssignableUsers(providerSettings, issue.key, query, issue.siteId),
       listPriorities: (issue) => jiraListPriorities(providerSettings, issue.siteId),
       listTransitions: (issue) => jiraListTransitions(providerSettings, issue.key, issue.siteId),
+      listSprints: (issue) =>
+        jiraListProjectSprints(providerSettings, issue.project.key, issue.siteId).then(
+          (found) => found.sprints
+        ),
       update: async (issue, updates, optimistic) => {
         patch(issue.key, optimistic)
         try {
