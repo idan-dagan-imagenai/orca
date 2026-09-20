@@ -2,6 +2,43 @@ import { describe, expect, it, vi } from 'vitest'
 import { adfToMarkdownText, collectAdfMediaAttrs } from './adf-markdown'
 import { escapeMarkdownLinkDestination } from './adf-media-destination'
 
+describe('adfToMarkdownText links', () => {
+  it('keeps link marks and smart-link cards clickable', () => {
+    const markdown = adfToMarkdownText({
+      type: 'doc',
+      version: 1,
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'From ' },
+            {
+              type: 'text',
+              text: 'Slack thread',
+              marks: [
+                { type: 'link', attrs: { href: 'https://x.slack.com/archives/C1/p2?thread_ts=1' } }
+              ]
+            }
+          ]
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'inlineCard', attrs: { url: 'https://x.slack.com/archives/C1/p3' } }]
+        },
+        { type: 'blockCard', attrs: { url: 'https://example.com/a (b)' } }
+      ]
+    })
+
+    expect(markdown).toBe(
+      [
+        'From [Slack thread](https://x.slack.com/archives/C1/p2?thread_ts=1)',
+        '[https://x.slack.com/archives/C1/p3](https://x.slack.com/archives/C1/p3)',
+        '[https://example.com/a (b)](https://example.com/a%20%28b%29)'
+      ].join('\n\n')
+    )
+  })
+})
+
 describe('adfToMarkdownText media', () => {
   it('keeps a placeholder when media cannot be resolved', () => {
     const markdown = adfToMarkdownText({

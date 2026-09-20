@@ -122,6 +122,17 @@ function renderMediaMarkdown(
   return unresolvedMediaPlaceholder(attrs)
 }
 
+function markdownLink(text: string, url: string): string {
+  const safeUrl = escapeMarkdownLinkDestination(url)
+  return safeUrl ? `[${escapeMarkdownAlt(text)}](${safeUrl})` : text
+}
+
+function applyLinkMark(text: string, marks: unknown): string {
+  const link = asArray(marks).find((mark) => asRecord(mark).type === 'link')
+  const href = asString(asRecord(asRecord(link).attrs).href)
+  return href ? markdownLink(text, href) : text
+}
+
 function renderInline(node: unknown, options?: AdfToMarkdownOptions): string {
   if (!node) {
     return ''
@@ -138,10 +149,18 @@ function renderInline(node: unknown, options?: AdfToMarkdownOptions): string {
 
   const record = node as JiraAdfRecord
   if (typeof record.text === 'string') {
-    return record.text
+    return applyLinkMark(record.text, record.marks)
   }
   if (record.type === 'hardBreak') {
     return '\n'
+  }
+  // Why: pasted URLs (Slack threads, docs) become smart-link cards whose only
+  // payload is attrs.url; render them as links so the origin stays clickable.
+  if (record.type === 'inlineCard' || record.type === 'blockCard' || record.type === 'embedCard') {
+    const url = asString(asRecord(record.attrs).url)
+    if (url) {
+      return markdownLink(url, url)
+    }
   }
   // Why: Jira pastes screenshots as media/mediaInline ADF nodes; without this
   // branch they collapse to empty strings and disappear from the UI.
